@@ -11,7 +11,7 @@ COLORS = {
 
 imageSize = (350, 500)
 
-cam = Camera(screenDistance=50, screenSize=Vector2(350, 500), screenRes=Vector2(imageSize[0], imageSize[1]))\
+cam = Camera(screenDistance=50, screenSize=Vector2(350, 500), screenRes=Vector2(imageSize[0], imageSize[1]))
 
 
 
