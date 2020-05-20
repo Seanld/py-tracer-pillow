@@ -7,6 +7,6 @@ provide a graphical display of the engine results.
 
 A sphere rendering example can be run via:
 
-`python spheretest.py`
+`python ptp.py`
 
 Which will generate an image called "sphere.png" in this project directory.
