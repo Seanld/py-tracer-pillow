@@ -9,14 +9,14 @@ from .vectors import Vector2, Vector3
 from numpy import dot
 from typing import List
 
-def randomId(length) -> str:
-    final = ""
-    
-    for _ in range(length):
-        final += ascii_letters[randrange(0, len(ascii_letters) - 1)]
 
-    return final
 
+class Color:
+    def __init__(self, r=0, g=0, b=0):
+        self.r = r
+        self.g = g
+        self.b = b
+        self.rgb = (r, g, b)
 
 class ImagePlane:
     # position: center of the plane
@@ -80,7 +80,7 @@ class Camera:
     # screenDistance: distance of the screen from physical location of the camera.
     def __init__(self, position: Vector3 = Vector3(), space: Space = None,
         screenDistance: float = 10, screenRes: Vector2 = Vector2(100, 100),
-        screenSize: Vector2 = Vector2(100, 100)):
+        screenSize: Vector2 = Vector2(100, 100), bg = Color()):
         if space == None:
             self.space = Space()
         else:
@@ -89,9 +89,10 @@ class Camera:
         self.position = position
         self.screenDistance = screenDistance
         self.screenRes = screenRes
-        self.buffer = [[0] * screenRes.y] * screenRes.x
+        self.buffer = [[bg] * screenRes.x] * screenRes.y
         # self.vertices: List[str] = []
         self.screen = ImagePlane(Vector3(self.position.x + self.screenDistance, self.position.y, self.position.z), screenSize, screenRes)
+        self.bg = bg
 
     # Renders and individual object; kept separate for readability purposes.
     def _renderObject(self, objectToRender):
@@ -99,11 +100,12 @@ class Camera:
         ray: Ray = Ray(self.position, Vector3(0, 0, 0))
 
         y = 0
-        x = 0
 
         finalBuffer = []
 
         for column in allPixelPositions:
+            x = 0
+
             currentColumn = []
 
             for pixelPosition in column:
@@ -111,14 +113,20 @@ class Camera:
                 
                 intersectResult = objectToRender.intersect(ray)
 
+                currentData = self.buffer[y][x]
+                
                 if intersectResult != None:
-                    currentColumn.append(1)
-                else:
-                    currentColumn.append(0)
+                    currentData = objectToRender.color
+                
+                currentColumn.append(currentData)
+
+                x += 1
                 
                 # THIS WAS FOR DEBUGGING, KEEPING IN CASE I NEED IT IN THE FUTURE!
                 # self.vertices.append("({x}, {y}, {z} = {result}; ({pixelX}, {pixelY}))\n".format(x=pixelPosition.x, y=pixelPosition.y, z=pixelPosition.z, result=intersectResult, pixelX=x, pixelY=y))
             
+            y += 1
+
             finalBuffer.append(currentColumn)
         
         self.buffer = finalBuffer
@@ -173,9 +181,10 @@ class Ray:
 
 
 class Sphere (Object):
-    def __init__(self, position: Vector3, radius: float):
+    def __init__(self, position: Vector3, radius: float, color=Color()):
         self.position = position
         self.radius = radius
+        self.color = color
     
     # Check if `ray` intersects with Sphere.
     def intersect(self, ray: Ray) -> bool:
