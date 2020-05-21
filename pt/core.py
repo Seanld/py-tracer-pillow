@@ -11,12 +11,33 @@ from typing import List
 
 
 
+# Sorts objects farthest from origin first, closest last.
+# NEEDS OPTIMIZATION!
+def sortObjectsFarthest(origin, objectList):
+    maximum = Sphere(Vector3(), 0)
+    newList = []
+
+    while objectList:
+        for x in objectList:
+            if x.position.distanceTo(origin) >= maximum.position.distanceTo(origin):
+                maximum = x
+            newList.append(maximum)
+            objectList.remove(x)
+    
+    newNewList = []
+    for x in reversed(newList):
+        newNewList.append(x)
+    
+    return newNewList
+
+
+
 class Color:
     def __init__(self, r=0, g=0, b=0):
         self.r = r
         self.g = g
         self.b = b
-        self.rgb = (r, g, b)
+        self.rgb = (r, g, b) 
 
 class ImagePlane:
     # position: center of the plane
@@ -95,7 +116,9 @@ class Camera:
         self.bg = bg
 
     # Renders and individual object; kept separate for readability purposes.
-    def _renderObject(self, objectToRender):
+    def render(self):
+        orderedObjects = sortObjectsFarthest(self.position, self.space.objects)
+
         allPixelPositions: List[List[Vector3]] = self.screen.getPixelPositions()
         ray: Ray = Ray(self.position, Vector3(0, 0, 0))
 
@@ -110,13 +133,13 @@ class Camera:
 
             for pixelPosition in column:
                 ray.direction = pixelPosition
-                
-                intersectResult = objectToRender.intersect(ray)
-
                 currentData = self.buffer[y][x]
+
+                for objectToRender in orderedObjects:
+                    intersectResult = objectToRender.intersect(ray)
                 
-                if intersectResult != None:
-                    currentData = objectToRender.color
+                    if intersectResult != None:
+                        currentData = objectToRender.color
                 
                 currentColumn.append(currentData)
 
@@ -131,11 +154,6 @@ class Camera:
         
         self.buffer = finalBuffer
 
-    # Will iteratively call the render functions of all object instances currently in the space.
-    def render(self):
-        for _object in self.space.objects:
-            self._renderObject(_object)
-        
         return self.buffer
 
     
