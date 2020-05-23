@@ -4,9 +4,9 @@ import os
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 
-imageSize = (200, 100)
+imageSize = (800, 400)
 
-cam = Camera(Vector3(0, 0, 0), screenDistance=400, screenSize=Vector2(imageSize[0] * 4, imageSize[1] * 4), screenRes=Vector2(imageSize[0], imageSize[1]), bg=Color(230, 255, 255))
+cam = Camera(Vector3(0, 0, 0), screenDistance=400, screenSize=Vector2(imageSize[0], imageSize[1]), screenRes=Vector2(imageSize[0], imageSize[1]), bg=Color(230, 255, 255))
 
 
 
@@ -16,7 +16,7 @@ l1: PointLight = PointLight(Vector3(-300, 300, 0), 300, 20)
 
 cam.space.addObject(s1)
 cam.space.addObject(s2)
-cam.space.lights.append(l1)
+cam.space.addObject(l1)
 # cam.space.addObject(s3)
 
 def renderFrame(size, cam, path):
@@ -46,15 +46,15 @@ movex = -260
 movey = 0
 movez = -70
 
-for x in range(100):
+for x in range(5):
     cam.moveTo(Vector3(movex, movey, movez))
 
     renderFrame(imageSize, cam, FILE_DIR + "/images/frame" + str(idCounter) + ".png")
     print("Frame " + str(idCounter) + " rendered...")
 
-    movex += 5
+    movex += 50
     movey += 0
-    movez += 2
+    movez += 30
 
     idCounter += 1
 
