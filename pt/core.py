@@ -107,7 +107,10 @@ class Space:
         self.lights = []
     
     def addObject(self, _object):
-        self.objects.append(_object)
+        if type(_object) == PointLight:
+            self.lights.append(_object)
+        else:
+            self.objects.append(_object)
     
     def deleteObject(self, id):
         i = 0
