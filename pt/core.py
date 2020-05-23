@@ -7,22 +7,23 @@ from random import randrange
 from string import ascii_letters
 from .vectors import Vector2, Vector3
 from numpy import dot
-from typing import List
+from typing import List, Tuple
 
 
 
 # Sorts objects farthest from origin first, closest last.
 # NEEDS OPTIMIZATION!
 def sortObjectsFarthest(origin, objectList):
+    unsortedCopy = [x for x in objectList]
     maximum = Sphere(Vector3(), 0)
     newList = []
 
-    while objectList:
-        for x in objectList:
+    while unsortedCopy:
+        for x in unsortedCopy:
             if x.position.distanceTo(origin) >= maximum.position.distanceTo(origin):
                 maximum = x
             newList.append(maximum)
-            objectList.remove(x)
+            unsortedCopy.remove(x)
     
     newNewList = []
     for x in reversed(newList):
@@ -32,12 +33,37 @@ def sortObjectsFarthest(origin, objectList):
 
 
 
+class Ray:
+    def __init__(self, origin: Vector3, direction: Vector3):
+        self.origin = origin
+        self.direction = direction
+    
+    def findT(self, t):
+        Px = self.origin.x + (self.direction.x * t)
+        Py = self.origin.y + (self.direction.y * t)
+        Pz = self.origin.z + (self.direction.z * t)
+
+        return Vector3(Px, Py, Pz)
+
 class Color:
     def __init__(self, r=0, g=0, b=0):
         self.r = r
         self.g = g
         self.b = b
-        self.rgb = (r, g, b) 
+        self.rgb = (r, g, b)
+    
+    def ceiling(self, value):
+        if value >= 255:
+            return 255
+        else:
+            return value
+
+    def brighten(self, rgb):
+        self.r += self.ceiling(rgb[0])
+        self.g += self.ceiling(rgb[1])
+        self.b += self.ceiling(rgb[2])
+
+        self.rgb = (self.r, self.g, self.b)
 
 class ImagePlane:
     # position: center of the plane
@@ -78,6 +104,7 @@ class ImagePlane:
 class Space:
     def __init__(self):
         self.objects = []
+        self.lights = []
     
     def addObject(self, _object):
         self.objects.append(_object)
@@ -91,21 +118,46 @@ class Space:
             if current.id == id:
                 self.objects = self.objects[:i] + self.objects[i+1:]
 
-    # aPos is starting location, bPos is destination/testing location.
-    def checkCollision(self, aPos, bPos):
-        pass
+    def calculateColorWithLight(self, objectToCalculate, origin):
+        totalLight = 0
 
+        for light in self.lights:
+            impeded = True
+            
+            for obj in self.objects:
+                # If object to calculate, and current object to intersect have the same positions,
+                # We don't need to calculate it.
+                if obj.position.x != objectToCalculate.position.x \
+                    and obj.position.y != objectToCalculate.position.y \
+                    and obj.position.z != objectToCalculate.position.z:
+
+                    ray = Ray(origin, light.position)
+
+                    # print("o", origin.x, origin.y, origin.z)
+                    # print("l", light.position.x, light.position.y, light.position.z)
+
+                    if obj.intersect(ray) != None:
+                        impeded = False
+            
+            if impeded == False:
+                if origin.distanceTo(light.position) <= light.radius:
+                    totalLight += light.intensity
+                
+                print("adding light")
+        
+        originalColor = objectToCalculate.color
+
+        originalColor.brighten((totalLight, totalLight, totalLight))
+
+        return originalColor
 
 class Camera:
     # position: physical location of camera.
     # screenDistance: distance of the screen from physical location of the camera.
-    def __init__(self, position: Vector3 = Vector3(), space: Space = None,
+    def __init__(self, position: Vector3 = Vector3(), space: Space = Space(),
         screenDistance: float = 10, screenRes: Vector2 = Vector2(100, 100),
         screenSize: Vector2 = Vector2(100, 100), bg = Color()):
-        if space == None:
-            self.space = Space()
-        else:
-            self.space = space
+        self.space = space
 
         self.position = position
         self.screenDistance = screenDistance
@@ -117,6 +169,8 @@ class Camera:
 
     # Renders and individual object; kept separate for readability purposes.
     def render(self):
+        self.buffer = [[self.bg] * self.screenRes.x] * self.screenRes.y
+
         orderedObjects = sortObjectsFarthest(self.position, self.space.objects)
 
         allPixelPositions: List[List[Vector3]] = self.screen.getPixelPositions()
@@ -139,8 +193,9 @@ class Camera:
                     intersectResult = objectToRender.intersect(ray)
                 
                     if intersectResult != None:
-                        currentData = objectToRender.color
-                
+                        currentData = self.space.calculateColorWithLight(objectToRender, ray.findT(intersectResult[0]))
+                        #print(currentData.rgb)
+                        
                 currentColumn.append(currentData)
 
                 x += 1
@@ -160,8 +215,9 @@ class Camera:
 
     # Absolute camera movement.
     def moveTo(self, position: Vector3):
+        print(self.position.x, self.position.y, self.position.z)
         self.position = position
-        self.screen.position = Vector3(self.position.x + self.screenDistance, self.position.y, self.position.z)
+        print(self.position.x, self.position.y, self.position.z)
     
     # Relative camera movement.
     def moveBy(self, increment: Vector3):
@@ -170,12 +226,9 @@ class Camera:
 
     
 class Object:
-    def __init__(self, position: Vector3 = Vector3(), vertices: List[Vector3] = [], id=""):
+    def __init__(self, position: Vector3 = Vector3(), vertices: List[Vector3] = []):
         self.position = position
         self.vertices = vertices
-
-        if self.id == "":
-            self.id = randomId(8)
 
     # Objects' vertices are relative to its position. To get absolute
     # vertices in relation to the space, use this method.
@@ -191,11 +244,11 @@ class Object:
 
 
 
-class Ray:
-    def __init__(self, origin: Vector3, direction: Vector3):
-        self.origin = origin
-        self.direction = direction
-
+class PointLight:
+    def __init__(self, position: Vector3, radius: float, intensity: 0.3):
+        self.position = position
+        self.radius = radius
+        self.intensity = intensity
 
 
 class Sphere (Object):
