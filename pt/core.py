@@ -32,7 +32,6 @@ def sortObjectsFarthest(origin, objectList):
     return newNewList
 
 
-
 class Ray:
     def __init__(self, origin: Vector3, direction: Vector3):
         self.origin = origin
@@ -52,18 +51,29 @@ class Color:
         self.b = b
         self.rgb = (r, g, b)
     
-    def ceiling(self, value):
-        if value >= 255:
-            return 255
-        else:
-            return value
-
-    def brighten(self, rgb):
-        self.r += self.ceiling(rgb[0])
-        self.g += self.ceiling(rgb[1])
-        self.b += self.ceiling(rgb[2])
+    def change(self, rgb):
+        self.r = rgb[0]
+        self.g = rgb[1]
+        self.b = rgb[2]
 
         self.rgb = (self.r, self.g, self.b)
+
+def ceiling(value):
+    if value >= 255:
+        return 255
+    else:
+        return value
+    
+def brighten(color: Color, rgb):
+    newColor = Color(color.r, color.g, color.b)
+
+    newColor.r = ceiling(newColor.r + rgb[0])
+    newColor.g = ceiling(newColor.g + rgb[1])
+    newColor.b = ceiling(newColor.b + rgb[2])
+
+    newColor.rgb = (newColor.r, newColor.g, newColor.b)
+
+    return newColor
 
 class ImagePlane:
     # position: center of the plane
@@ -122,37 +132,26 @@ class Space:
                 self.objects = self.objects[:i] + self.objects[i+1:]
 
     def calculateColorWithLight(self, objectToCalculate, origin):
-        totalLight = 0
+        lightReaches = False
+        totalLuminostiy = 0
 
-        for light in self.lights:
-            impeded = True
-            
-            for obj in self.objects:
-                # If object to calculate, and current object to intersect have the same positions,
-                # We don't need to calculate it.
-                if obj.position.x != objectToCalculate.position.x \
-                    and obj.position.y != objectToCalculate.position.y \
-                    and obj.position.z != objectToCalculate.position.z:
+        for _light in self.lights:
+            reflectionRay = Ray(origin, _light.position)
 
-                    ray = Ray(origin, light.position)
+            for _object in self.objects:
+                intersectionTest = _object.intersect(reflectionRay)
 
-                    # print("o", origin.x, origin.y, origin.z)
-                    # print("l", light.position.x, light.position.y, light.position.z)
-
-                    if obj.intersect(ray) != None:
-                        impeded = False
-            
-            if impeded == False:
-                if origin.distanceTo(light.position) <= light.radius:
-                    totalLight += light.intensity
-                
-                print("adding light")
+                if intersectionTest != None:
+                    if origin.distanceTo(_light.position) <= _light.radius:
+                        totalLuminostiy += _light.intensity
+                        lightReaches = True
         
-        originalColor = objectToCalculate.color
-
-        originalColor.brighten((totalLight, totalLight, totalLight))
-
-        return originalColor
+        if lightReaches:
+            newColor = brighten(objectToCalculate.color, (totalLuminostiy, totalLuminostiy, totalLuminostiy))
+            # print("BEFORE", newColor.rgb)
+            return newColor
+        else:
+            return objectToCalculate.color
 
 class Camera:
     # position: physical location of camera.
@@ -196,8 +195,8 @@ class Camera:
                     intersectResult = objectToRender.intersect(ray)
                 
                     if intersectResult != None:
-                        currentData = self.space.calculateColorWithLight(objectToRender, ray.findT(intersectResult[0]))
-                        #print(currentData.rgb)
+                        currentData = self.space.calculateColorWithLight(objectToRender, ray.findT(intersectResult[1]))
+                        # print(currentData.rgb)
                         
                 currentColumn.append(currentData)
 
@@ -214,13 +213,9 @@ class Camera:
 
         return self.buffer
 
-    
-
     # Absolute camera movement.
     def moveTo(self, position: Vector3):
-        print(self.position.x, self.position.y, self.position.z)
         self.position = position
-        print(self.position.x, self.position.y, self.position.z)
     
     # Relative camera movement.
     def moveBy(self, increment: Vector3):
@@ -278,7 +273,7 @@ class Sphere (Object):
         if discrim == 0:
             return print("GLANCE!")
 
-        t1 = (-b + sqrt(discrim)) / (2 * a)
-        t2 = (-b - sqrt(discrim)) / (2 * a)
+        t1 = (b + sqrt(discrim)) / (2 * a)
+        t2 = (b - sqrt(discrim)) / (2 * a)
 
         return (t1, t2)
