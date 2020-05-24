@@ -20,6 +20,9 @@ class Vector2:
     
     def __repr__(self):
         return "<{x},{y}>".format(x=self.x, y=self.y)
+    
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
 
 class Vector3:
     def __init__(self, x=0, y=0, z=0):
@@ -41,3 +44,6 @@ class Vector3:
 
     def __repr__(self):
         return "<{x},{y},{z}>".format(x=self.x, y=self.y, z=self.z)
+    
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y and self.z == other.z
