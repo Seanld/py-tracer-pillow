@@ -133,7 +133,7 @@ class Space:
 
     def calculateColorWithLight(self, objectToCalculate, origin):
         lightReaches = False
-        totalLuminostiy = 0
+        totalLuminosity = 0
 
         for _light in self.lights:
             reflectionRay = Ray(origin, _light.position)
@@ -142,12 +142,11 @@ class Space:
                 intersectionTest = _object.intersect(reflectionRay)
 
                 if intersectionTest != None:
-                    if origin.distanceTo(_light.position) <= _light.radius:
-                        totalLuminostiy += _light.intensity
-                        lightReaches = True
+                    totalLuminosity += int((_light.intensity * (1 / ((origin.distanceTo(_light.position) / _light.radius) * 3))))
+                    lightReaches = True
         
         if lightReaches:
-            newColor = brighten(objectToCalculate.color, (totalLuminostiy, totalLuminostiy, totalLuminostiy))
+            newColor = brighten(objectToCalculate.color, (totalLuminosity, totalLuminosity, totalLuminosity))
             # print("BEFORE", newColor.rgb)
             return newColor
         else:
@@ -259,13 +258,17 @@ class Sphere (Object):
     def intersect(self, ray: Ray) -> bool:
         dist = self.position - ray.origin
 
-        a = dot(ray.direction.asList(), ray.direction.asList())
-        b = 2 * dot(ray.direction.asList(), dist.asList())
-        c = dot(dist.asList(), dist.asList()) - (self.radius ** 2)
+        distList = dist.asList()
+        rayDirectionList = ray.direction.asList()
+
+        a = dot(rayDirectionList, rayDirectionList)
+        b = 2 * dot(rayDirectionList, distList)
+        c = dot(distList, distList) - (self.radius ** 2)
 
         #print(a, b, c)
 
         discrim = b * b - 4 * a * c
+        denominator = 2 * a
 
         if discrim < 0:
             return None
@@ -273,7 +276,9 @@ class Sphere (Object):
         if discrim == 0:
             return print("GLANCE!")
 
-        t1 = (b + sqrt(discrim)) / (2 * a)
-        t2 = (b - sqrt(discrim)) / (2 * a)
+        discrimSquareRoot = sqrt(discrim)
+
+        t1 = (b + discrimSquareRoot) / denominator
+        t2 = (b - discrimSquareRoot) / denominator
 
         return (t1, t2)
